@@ -1,0 +1,28 @@
+const MAX_SHEETS = 3  //Initialized the maximum sheets count for the printer
+range SHEET_RANGE =0..MAX_SHEETS    //range of the sheets
+set PRINTER_ACTIONS = {printLock, print, refillLock, refill, release}     //actions as a set
+set Users = {std1 , std2, tech}  //define the user actions as a set
+
+//PRINTER Process
+//Initialize the printer with maximum sheet number
+PRINTER (SHEETS_COUNT = MAX_SHEETS) = PRINTER[SHEETS_COUNT],
+PRINTER[a :SHEET_RANGE] = 
+	                       if(a > 0)
+	                       then (printLock -> print -> release -> PRINTER[a-1])
+	                       else(refillLock-> refill -> release -> PRINTER[MAX_SHEETS]).
+
+//STUDENT Process
+//Initialized with the given amount of documents
+ 
+STUDENT(DOCUMENT_AMOUNT = 1) = STUDENT[DOCUMENT_AMOUNT],
+STUDENT[b : 1..DOCUMENT_AMOUNT] = (printLock -> print[b] -> if(b > 1) 
+                                      then (release -> STUDENT[b-1])
+                                     else(release-> END)) + PRINTER_ACTIONS / {print/print[b:1..DOCUMENT_AMOUNT ]}.   
+                                       //Above line replace the print[b] actions as print action
+
+//Process for the TECHNICIAN 
+//Technician will be in the wait state if the sheet count is not equal to zero 
+TECHNICIAN = (refillLock -> refill -> release -> TECHNICIAN |wait -> TECHNICIAN) + PRINTER_ACTIONS.
+	
+//Composite process for the PRINTER_SYSTEM
+||PRINTING_SYSTEM = (std1: STUDENT(3) || std2: STUDENT(2) || tech: TECHNICIAN || Users:: PRINTER).
